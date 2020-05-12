@@ -27,11 +27,24 @@ namespace WpfApp_Reflection
 
             tbxFilePath.Text = filePath;
             tbxViewInfo.Text = "";
+            var strBuilder = new StringBuilder();
+            Assembly currentAssembly = null;
+            try
+            {
+                currentAssembly = Assembly.LoadFrom(filePath);
+            }
+            catch(Exception exc)
+            {
+                MessageBox.Show(exc.ToString());
+                return;
+            }
 
-            var currentAssembly = Assembly.LoadFrom(filePath);
-            GetAssemblyInfo(currentAssembly);
-            GetAssemblyReferenceInfo(currentAssembly);
+            GetAssemblyInfo(currentAssembly, strBuilder);
+            //GetAssemblyReferenceInfo(currentAssembly);
 
+            AssemblyName[] allReferencedAssemblies = currentAssembly.GetReferencedAssemblies();
+            var str = new StringBuilder();
+            GetAssemblyReferenceInfoRecursion(allReferencedAssemblies, str);
 
             #region first try
             /*
@@ -70,19 +83,20 @@ namespace WpfApp_Reflection
             //tbxViewInfo.Text = File.ReadAllText(openFileDialog.FileName);
         }
 
-        void GetAssemblyInfo(Assembly currentAssembly)
+        void GetAssemblyInfo(Assembly currentAssembly, StringBuilder stringBuilder)
         {
             Type[] types = currentAssembly.GetTypes();
-            var strBuilder = new StringBuilder();
+
             foreach (var type in types)
             {
-                strBuilder.Append($"{type.Name}\n");
+                stringBuilder.Append($"{type.Name}\n");
             }
-            tbxViewInfo.Text += strBuilder;
+            tbxViewInfo.Text += stringBuilder;
         }
 
         int cntLevel, cntRef = 0;
-        
+
+        // без рекурсии - на два уровня
         void GetAssemblyReferenceInfo(Assembly currentAssembly)
         {
             StringBuilder str = new StringBuilder();
@@ -103,11 +117,34 @@ namespace WpfApp_Reflection
                     cntLevel = 0;
                 }
             }
-
-
             tbxViewInfo.Text += str.ToString();
         }
 
+        void AssemNextLevel(AssemblyName[] assemblyNames, StringBuilder stringBuilder)
+        {
+            foreach (var item in assemblyNames)
+            {
+                stringBuilder.Append($"\t { item.Name} \n");
+            }
+        }
+
+        int countCall = 0;
+        // обход зависимостей рекурсией
+        void GetAssemblyReferenceInfoRecursion(AssemblyName[] assemblyNamesNext, StringBuilder stringBuilder)
+        {
+            countCall++;
+            foreach (var assemblyName in assemblyNamesNext)
+            {
+                stringBuilder.Append($"\n{ assemblyName.Name} \n");
+
+                assemblyNamesNext = Assembly.Load(assemblyName).GetReferencedAssemblies();
+
+                if (assemblyNamesNext.Length > 0 && countCall != 20)
+                    GetAssemblyReferenceInfoRecursion(assemblyNamesNext, stringBuilder);
+
+            }
+            tbxViewInfo.Text += stringBuilder.ToString();
+        }
 
         //int count = 0;
         //private void GetAssembly(AssemblyName[] assemblyName)
@@ -128,7 +165,7 @@ namespace WpfApp_Reflection
 
         //            str.Append($"Members -> \n");
         //            var members = method.GetType().GetMembers();
-                    
+
         //              int cntMemb = 0;
         //            foreach (var member in members)
         //            {
