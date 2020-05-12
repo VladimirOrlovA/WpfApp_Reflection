@@ -27,7 +27,7 @@ namespace WpfApp_Reflection
 
             var currentAssembly = Assembly.LoadFrom(filePath);
 
-            var allReferencedAssemblies = currentAssembly.GetReferencedAssemblies();
+            var allReferencedAssemblies = currentAssembly.GetReferencedAssemblies(); 
 
             tbxViewInfo.Text = "";
 
