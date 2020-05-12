@@ -1,4 +1,5 @@
 ﻿using Microsoft.Win32;
+using System;
 using System.Reflection;
 using System.Text;
 using System.Windows;
@@ -23,15 +24,13 @@ namespace WpfApp_Reflection
             {
                 filePath = openFileDialog.FileName;
             }
+
             tbxFilePath.Text = filePath;
-
-            var currentAssembly = Assembly.LoadFrom(filePath);
-
-            var allReferencedAssemblies = currentAssembly.GetReferencedAssemblies(); 
-
             tbxViewInfo.Text = "";
 
-            GetAssemblyReferenceInfo(allReferencedAssemblies);
+            var currentAssembly = Assembly.LoadFrom(filePath);
+            GetAssemblyInfo(currentAssembly);
+            GetAssemblyReferenceInfo(currentAssembly);
 
 
             #region first try
@@ -71,16 +70,30 @@ namespace WpfApp_Reflection
             //tbxViewInfo.Text = File.ReadAllText(openFileDialog.FileName);
         }
 
-        int cntLevel, cntRef = 0;
-        StringBuilder str = new StringBuilder();
-        private void GetAssemblyReferenceInfo(AssemblyName[] assemblyName)
+        void GetAssemblyInfo(Assembly currentAssembly)
         {
-            foreach (var item in assemblyName)
+            Type[] types = currentAssembly.GetTypes();
+            var strBuilder = new StringBuilder();
+            foreach (var type in types)
+            {
+                strBuilder.Append($"{type.Name}\n");
+            }
+            tbxViewInfo.Text += strBuilder;
+        }
+
+        int cntLevel, cntRef = 0;
+        
+        void GetAssemblyReferenceInfo(Assembly currentAssembly)
+        {
+            StringBuilder str = new StringBuilder();
+            var allReferencedAssemblies = currentAssembly.GetReferencedAssemblies();
+
+            foreach (var item in allReferencedAssemblies)
             {
                 str.Append($"\n{cntRef++}. { item.Name} \n");
 
                 var assemblyNameNextLevel = Assembly.Load(item).GetReferencedAssemblies();
-                if (assemblyNameNextLevel.Length != 0 && cntLevel != 20)
+                if (assemblyNameNextLevel.Length != 0)
                 {
                     cntLevel++;
                     foreach (var item1 in assemblyNameNextLevel)
@@ -91,8 +104,8 @@ namespace WpfApp_Reflection
                 }
             }
 
-            tbxViewInfo.Text = str.ToString();
 
+            tbxViewInfo.Text += str.ToString();
         }
 
 
